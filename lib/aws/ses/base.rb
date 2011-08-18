@@ -1,30 +1,30 @@
 module AWS #:nodoc:
   # AWS::SES is a Ruby library for Amazon's Simple Email Service's REST API (http://aws.amazon.com/ses).
-  # 
+  #
   # == Getting started
-  # 
+  #
   # To get started you need to require 'aws/ses':
-  # 
+  #
   #   % irb -rubygems
   #   irb(main):001:0> require 'aws/ses'
   #   # => true
-  # 
+  #
   # Before you can do anything, you must establish a connection using Base.new.  A basic connection would look something like this:
-  # 
+  #
   #   ses = AWS::SES::Base.new(
-  #     :access_key_id     => 'abc', 
+  #     :access_key_id     => 'abc',
   #     :secret_access_key => '123'
   #   )
-  # 
+  #
   # The minimum connection options that you must specify are your access key id and your secret access key.
   module SES
-    
+
     API_VERSION = '2010-12-01'
-    
+
     DEFAULT_HOST = 'email.us-east-1.amazonaws.com'
-    
+
     USER_AGENT = 'github-aws-ses-ruby-gem'
-    
+
     # Encodes the given string with the secret_access_key by taking the
     # hmac-sha1 sum, and then base64 encoding it.  Optionally, it will also
     # url encode the result of that to protect the string if it's going to
@@ -46,21 +46,21 @@ module AWS #:nodoc:
         return b64_hmac
       end
     end
-    
+
     # Generates the HTTP Header String that Amazon looks for
-    # 
+    #
     # @param [String] key the AWS Access Key ID
     # @param [String] alg the algorithm used for the signature
     # @param [String] sig the signature itself
     def SES.authorization_header(key, alg, sig)
       "AWS3-HTTPS AWSAccessKeyId=#{key}, Algorithm=#{alg}, Signature=#{sig}"
     end
-    
+
     # AWS::SES::Base is the abstract super class of all classes who make requests against SES
-    class Base   
+    class Base
       include SendEmail
       include Info
-      
+
       attr_reader :use_ssl, :server, :proxy_server, :port
 
       # @option options [String] :access_key_id ("") The user's AWS Access Key ID
@@ -120,21 +120,22 @@ module AWS #:nodoc:
         # Don't verify the SSL certificates.  Avoids SSL Cert warning in log on every GET.
         @http.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
+        @settings = {}
       end
-      
+
       attr_accessor :settings
-      
+
       def connection
         @http
       end
-      
-      # Make the connection to AWS passing in our request.  
+
+      # Make the connection to AWS passing in our request.
       # allow us to have a one line call in each method which will do all of the work
       # in making the actual request to AWS.
       def request(action, params = {})
         # Use a copy so that we don't modify the caller's Hash, remove any keys that have nil or empty values
         params = params.reject { |key, value| value.nil? or value.empty?}
-        
+
         timestamp = Time.now.getutc
 
         params.merge!( {"Action" => action,
@@ -152,17 +153,17 @@ module AWS #:nodoc:
 
         req['X-Amzn-Authorization'] = get_aws_auth_param(timestamp.httpdate, @secret_access_key)
         req['Date'] = timestamp.httpdate
-        req['User-Agent'] = @user_agent 
+        req['User-Agent'] = @user_agent
 
         response = connection.post(@path, query, req)
-        
+
         response_class = AWS::SES.const_get( "#{action}Response" )
         result = response_class.new(action, response)
-        
+
         if result.error?
           raise ResponseError.new(result)
         end
-        
+
         result
       end
 
